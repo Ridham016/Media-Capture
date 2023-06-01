@@ -1,0 +1,7 @@
+{
+  "name": "MediaPlugin",
+  "integrations": {
+    "cordova": {}
+  },
+  "type": "angular"
+}
