@@ -7,6 +7,10 @@ import { File } from '@awesome-cordova-plugins/file/ngx';
 import{FileOpener} from '@awesome-cordova-plugins/file-opener/ngx'
 import { AndroidPermissions } from '@awesome-cordova-plugins/android-permissions/ngx';
 import { Diagnostic } from '@awesome-cordova-plugins/diagnostic/ngx';
+import{Geolocation } from '@awesome-cordova-plugins/geolocation/ngx'
+// import * as wm from 'watermarkjs';
+
+
 
 @Component({
   selector: 'app-home',
@@ -24,6 +28,8 @@ export class HomePage implements OnInit {
   audioStatus=false;
   blob!: any;
   i=0;
+  longitude:any
+  latitude:any
   constructor(
     private mediaCapture: MediaCapture,
     private plt:Platform,
@@ -31,23 +37,24 @@ export class HomePage implements OnInit {
     private http:HTTP,
     private dia:Diagnostic,
     private file: File,
-    private fileOpener: FileOpener
+    private fileOpener: FileOpener,
+    private Geo:Geolocation
     ) {
 
    }
     permissions = [
     this.ap.PERMISSION.CAMERA,
-    this.ap.PERMISSION.READ_EXTERNAL_STORAGE,
-    this.ap.PERMISSION.WRITE_EXTERNAL_STORAGE,
     this.ap.PERMISSION.READ_MEDIA_AUDIO,
     this.ap.PERMISSION.READ_MEDIA_VIDEO,
     this.ap.PERMISSION.READ_MEDIA_IMAGE,
     this.ap.PERMISSION.RECORD_AUDIO,
-    this.ap.PERMISSION.	ACCESS_FINE_LOCATION,
+    this.ap.PERMISSION.ACCESS_FINE_LOCATION,
+    this.ap.PERMISSION.ACCESS_COARSE_LOCATION,
   ];
    ngOnInit() {
     this.plt.ready().then(() => {
       this.checkPermission();
+
     });
   }
   checkPermission(){
@@ -59,6 +66,8 @@ export class HomePage implements OnInit {
           if (res.hasPermission === true) {
             // Permission denied with the "Never ask again" option
             console.log('Permissions granted');
+            this.i=0;
+
 
           }
           else if (res.hasPermission === false) {
@@ -91,6 +100,7 @@ export class HomePage implements OnInit {
       (mediaFiles:any) => {
         console.log(mediaFiles);
         if (mediaFiles) {
+
           this.convertMediaFileToBlob(mediaFiles[0])
           this.videopath = mediaFiles[0].fullPath;
           this.videoStatus = true;
@@ -131,16 +141,22 @@ export class HomePage implements OnInit {
       (mediaFiles:any) => {
         console.log(mediaFiles);
         if (mediaFiles) {
-          this.convertMediaFileToBlob(mediaFiles[0])
-          this.imagepath = mediaFiles[0].fullPath;
+          const capturedImage = mediaFiles[0];
+          this.convertMediaFileToBlob(capturedImage)
+          this.imagepath=capturedImage.fullPath;
           this.imageStatus = true;
-          console.log('Image path:', this.imagepath);
-        } else {
+          this.Geo.getCurrentPosition().then((pos) =>{
+            console.log(pos);
+          }).catch(error=>{
+            console.log(error);
+          })
+        }
+       else {
           console.log('No video captured');
         }
       },
       (error: CaptureError) => {
-        console.log('Error capturing video:', error);
+        console.log('Error capturing IMAGE:', error);
       }
     );
   }
@@ -224,7 +240,7 @@ export class HomePage implements OnInit {
     this.openMediaFile(this.imagepath);
   }
 
-  convertMediaFileToBlob(mediaFile: MediaFile): void {
+ convertMediaFileToBlob(mediaFile: MediaFile): void {
 
     this.file.resolveLocalFilesystemUrl(mediaFile.fullPath).then((fileEntry:any) => {
       fileEntry.file((file:any) => {
@@ -234,7 +250,15 @@ export class HomePage implements OnInit {
           // Use the blob as needed
           const formData = new FormData();
           formData.append('file',this.blob, mediaFile.name);
+          console.log('LL before wm',this.latitude,this.longitude);
 
+          // wm([this.blob])
+          // .image(wm.text.lowerLeft("("+this.latitude+", "+this.longitude+")", '20px Arial', '#F5A905', 0.8))
+          //   .then((img:any) => {
+          //     console.log('img log : '+img.src);
+          //     this.imagepath=img.src
+          //   });
+          console.log('location added',this.imagepath)
           this.http.setHeader('Access-Control-Allow-Origin','https://a816-175-100-133-59.ngrok-free.app/api/','');
           this.http.setDataSerializer('multipart');
           this.http.post('https://a816-175-100-133-59.ngrok-free.app/api/Upload/UploadFile', formData,{})
@@ -246,5 +270,7 @@ export class HomePage implements OnInit {
       });
     });
   }
+
+
 
 }

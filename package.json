@@ -27,6 +27,7 @@
     "@awesome-cordova-plugins/file": "^6.3.0",
     "@awesome-cordova-plugins/file-opener": "^6.3.0",
     "@awesome-cordova-plugins/file-transfer": "^6.3.0",
+    "@awesome-cordova-plugins/geolocation": "^6.3.0",
     "@awesome-cordova-plugins/http": "^6.3.0",
     "@awesome-cordova-plugins/media": "^6.3.0",
     "@awesome-cordova-plugins/media-capture": "^6.3.0",
@@ -36,6 +37,7 @@
     "ionicons": "^7.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
+    "watermarkjs": "^2.1.1",
     "zone.js": "~0.13.0"
   },
   "devDependencies": {
@@ -62,6 +64,7 @@
     "cordova-plugin-file": "^7.0.0",
     "cordova-plugin-file-opener2": "^4.0.0",
     "cordova-plugin-file-transfer": "^1.7.1",
+    "cordova-plugin-geolocation": "^4.1.0",
     "cordova-plugin-ionic-keyboard": "^2.0.5",
     "cordova-plugin-ionic-webview": "^5.0.0",
     "cordova-plugin-media": "^6.1.0",
@@ -103,7 +106,10 @@
         "ANDROIDBLACKLISTSECURESOCKETPROTOCOLS": "SSLv3,TLSv1"
       },
       "cordova-plugin-file-opener2": {},
-      "cordova-plugin-android-permissions": {}
+      "cordova-plugin-android-permissions": {},
+      "cordova-plugin-geolocation": {
+        "GPS_REQUIRED": "true"
+      }
     },
     "platforms": [
       "android"
