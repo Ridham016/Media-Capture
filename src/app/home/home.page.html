@@ -12,6 +12,7 @@
   <ion-button (click)="captureAudio()">Capture Audio</ion-button>
   <ion-button (click)="playAudio()" *ngIf="audioStatus">play audio</ion-button>
   <ion-button (click)="captureImage()">Capture Image</ion-button>
-  <!-- <ion-button (click)="playImage()" *ngIf="imageStatus">display img</ion-button> -->
-  <img [src]="imagepath" *ngIf="imageStatus">
+  <ion-button (click)="playImage()" *ngIf="imageStatus">display img</ion-button>
+  <ion-button (click)="playImagecopy()" *ngIf="imagecopyStatus">display copy img</ion-button>
+  <ion-button (click)="getloc()">get location</ion-button>
 </ion-content>

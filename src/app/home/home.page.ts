@@ -1,14 +1,12 @@
 import { HTTP } from '@awesome-cordova-plugins/http/ngx';
-import { Component, OnInit } from '@angular/core';
+import { Component} from '@angular/core';
 import { MediaCapture,MediaFile, CaptureError  } from '@awesome-cordova-plugins/media-capture/ngx';
-import { Platform } from '@ionic/angular';
-import { Media, MediaObject } from '@awesome-cordova-plugins/media/ngx';
 import { File } from '@awesome-cordova-plugins/file/ngx';
 import{FileOpener} from '@awesome-cordova-plugins/file-opener/ngx'
-import { AndroidPermissions } from '@awesome-cordova-plugins/android-permissions/ngx';
-import { Diagnostic } from '@awesome-cordova-plugins/diagnostic/ngx';
 import{Geolocation } from '@awesome-cordova-plugins/geolocation/ngx'
-// import * as wm from 'watermarkjs';
+import * as wm from 'watermarkjs';
+import * as blobUtil from 'blob-util';
+import { LoadingController, Platform } from '@ionic/angular';
 
 
 
@@ -17,91 +15,37 @@ import{Geolocation } from '@awesome-cordova-plugins/geolocation/ngx'
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
 })
-export class HomePage implements OnInit {
+export class HomePage {
 
   videopath!:string;
   audiopath!:string;
   imagepath!:string;
-  mediaObject!: MediaObject;
+  imagepathcopy!:string;
   videoStatus=false;
   imageStatus=false;
+  imagecopyStatus=false;
   audioStatus=false;
   blob!: any;
-  i=0;
   longitude:any
   latitude:any
   constructor(
     private mediaCapture: MediaCapture,
-    private plt:Platform,
-    private ap:AndroidPermissions,
-    private http:HTTP,
-    private dia:Diagnostic,
     private file: File,
     private fileOpener: FileOpener,
-    private Geo:Geolocation
+    private Geo:Geolocation,
+    private http:HTTP,
+    private plt:Platform,
+    private loadingController:LoadingController
     ) {
 
    }
-    permissions = [
-    this.ap.PERMISSION.CAMERA,
-    this.ap.PERMISSION.READ_MEDIA_AUDIO,
-    this.ap.PERMISSION.READ_MEDIA_VIDEO,
-    this.ap.PERMISSION.READ_MEDIA_IMAGE,
-    this.ap.PERMISSION.RECORD_AUDIO,
-    this.ap.PERMISSION.ACCESS_FINE_LOCATION,
-    this.ap.PERMISSION.ACCESS_COARSE_LOCATION,
-  ];
-   ngOnInit() {
-    this.plt.ready().then(() => {
-      this.checkPermission();
-
-    });
-  }
-  checkPermission(){
-    console.log(this.i)
-    this.ap.requestPermissions(this.permissions)
-        .then((res) => {
-          console.log(res)
-          // Permission granted or already granted
-          if (res.hasPermission === true) {
-            // Permission denied with the "Never ask again" option
-            console.log('Permissions granted');
-            this.i=0;
-
-
-          }
-          else if (res.hasPermission === false) {
-            // Permission denied with the "Never ask again" option
-            if(this.i===1){
-              this.showSettingsRedirect();
-            }
-            else if(this.i<1){
-              this.i++;
-              this.checkPermission();
-            }
-
-          }
-        });
-  }
-  showSettingsRedirect() {
-    console.log('showSettingsRedirect');
-    this.dia.switchToSettings()
-    .then(() => {
-      console.log('Redirected to app settings');
-      this.i=0;
-    })
-    .catch((err) => {
-      console.log('Error opening app settings:', err);
-    });
-  }
 
   captureVideo() {
     this.mediaCapture.captureVideo().then(
       (mediaFiles:any) => {
         console.log(mediaFiles);
         if (mediaFiles) {
-
-          this.convertMediaFileToBlob(mediaFiles[0])
+          // this.convertMediaFileToBlob(mediaFiles[0])
           this.videopath = mediaFiles[0].fullPath;
           this.videoStatus = true;
           console.log('Video path:', this.videopath);
@@ -123,7 +67,7 @@ export class HomePage implements OnInit {
       (mediaFiles:any) => {
         console.log(mediaFiles);
         if (mediaFiles) {
-          this.convertMediaFileToBlob(mediaFiles[0])
+          // this.convertMediaFileToBlob(mediaFiles[0])
           this.audiopath = mediaFiles[0].fullPath;
           this.audioStatus = true;
           console.log('Audio path:', this.audiopath);
@@ -141,15 +85,9 @@ export class HomePage implements OnInit {
       (mediaFiles:any) => {
         console.log(mediaFiles);
         if (mediaFiles) {
-          const capturedImage = mediaFiles[0];
-          this.convertMediaFileToBlob(capturedImage)
-          this.imagepath=capturedImage.fullPath;
+          this.imagepath=mediaFiles[0].fullPath;
           this.imageStatus = true;
-          this.Geo.getCurrentPosition().then((pos) =>{
-            console.log(pos);
-          }).catch(error=>{
-            console.log(error);
-          })
+          this.convertMediaFileToBlob(mediaFiles[0])
         }
        else {
           console.log('No video captured');
@@ -162,18 +100,7 @@ export class HomePage implements OnInit {
   }
 
   playVideo() {
-
     this.openMediaFile(this.videopath);
-    // if (this.videopath && this.videoStatus) {
-    //   this.videoPlayer.play(this.videopath).then(() => {
-    //     console.log('Video played successfully');
-    //   }).catch(err => {
-    //     this.videoPlayer.close();
-    //     console.log('Error playing video:', err);
-    //   });
-    // } else {
-    //   console.log('No video to play');
-    // }
   }
   openMediaFile(fileUrl: string) {
     this.fileOpener.open(fileUrl, this.getFileMimeType(fileUrl))
@@ -223,54 +150,100 @@ export class HomePage implements OnInit {
 
   playAudio(){
     this.openMediaFile(this.audiopath);
-    // const audioFile = ' file:///storage/emulated/0/Dowmload/file_example_WAV_1MG.wav'; // Specify the path to your audio file
-
-    // this.audiopath=audioFile
-      // const audioUrl = this.audiopath;
-      // this.mediaObject = this.media.create(this.audiopath);
-      // this.mediaObject.play();
-
   }
  playImage(){
-    // try {
-    //  this.photoViewer.show(this.imagepath,"load");
-    // } catch (error) {
-    //   console.log('Error viewing image:', error);
-    // }
     this.openMediaFile(this.imagepath);
   }
 
- convertMediaFileToBlob(mediaFile: MediaFile): void {
-
+  convertMediaFileToBlob(mediaFile: MediaFile): void {
+    this.imagecopyStatus=true
+    this.showLoader();
     this.file.resolveLocalFilesystemUrl(mediaFile.fullPath).then((fileEntry:any) => {
       fileEntry.file((file:any) => {
         const reader = new FileReader();
-        reader.onloadend = () => {
+        reader.onloadend = async () => {
           this.blob = new Blob([reader.result as ArrayBuffer], { type: file.type });
           // Use the blob as needed
           const formData = new FormData();
           formData.append('file',this.blob, mediaFile.name);
           console.log('LL before wm',this.latitude,this.longitude);
+         await wm([this.blob]).image(wm.text.lowerLeft(this.latitude+'  '+this.longitude, '72px Arial', '#F5A905', 0.8)).then((img: any) => {
+            console.log(img.src);
+         if(img.src){
+            const base64Image = img.src;
+            const url = base64Image;
 
-          // wm([this.blob])
-          // .image(wm.text.lowerLeft("("+this.latitude+", "+this.longitude+")", '20px Arial', '#F5A905', 0.8))
-          //   .then((img:any) => {
-          //     console.log('img log : '+img.src);
-          //     this.imagepath=img.src
-          //   });
+            fetch(url)
+              .then(response => response.blob())
+              .then(async blobcopy => {
+                console.log('fetch blob',blobcopy);
+                const fileName = 'image.png'; // Specify the desired file name and extension
+                const directory = this.plt.is('ios') ? this.file.documentsDirectory : this.file.externalDataDirectory; // Choose the appropriate directory based on the platform
+                const filePath = directory + fileName;
+                this.imagepathcopy=filePath;
+                console.log(this.imagepathcopy)
+                console.log('blobcopy',blobcopy);
+                await this.file.writeFile(directory, fileName, blobcopy, { replace: true }).then((lol) => {
+                  if(lol){
+                    this.hideLoader();
+                    alert('Image saved successfully!');
+                  }
+                }).catch(err => {
+                console.error('Error saving image:', err);
+                });
+              })
+              .catch(error => {
+                console.error('Error converting Base64 to Blob:', error);
+              });
+
+          }
+
+          })
+          .catch((error: any) => {
+            console.log(error);
+          });
           console.log('location added',this.imagepath)
-          this.http.setHeader('Access-Control-Allow-Origin','https://a816-175-100-133-59.ngrok-free.app/api/','');
-          this.http.setDataSerializer('multipart');
-          this.http.post('https://a816-175-100-133-59.ngrok-free.app/api/Upload/UploadFile', formData,{})
-            .then((response) => {
-              console.log(response);
-            })
+          // this.http.setHeader('Access-Control-Allow-Origin','https://a816-175-100-133-59.ngrok-free.app/api/','');
+          // this.http.setDataSerializer('multipart');
+          // this.http.post('https://a816-175-100-133-59.ngrok-free.app/api/Upload/UploadFile', formData,{})
+          //   .then((response) => {
+          //     console.log(response);
+          //   })
         };
         reader.readAsArrayBuffer(file);
       });
     });
   }
+  playImagecopy(){
+    this.openMediaFile(this.imagepathcopy);
+  }
 
+async getloc()
+ {
+      await this.Geo.getCurrentPosition().then((pos) =>{
+            console.log(pos);
+            this.latitude=pos.coords.latitude;
+            this.longitude=pos.coords.longitude;
+            alert(this.latitude+' '+this.longitude);
+          }).catch(error=>{
+            console.log(error);
+          });
+ }
 
+ async showLoader() {
+  const loading = await this.loadingController.create({
+    message: 'loading....',
+    translucent:true,
+    duration:10
+  });
+  await loading.present();
+
+}
+async hideLoader() {
+  const loading = await this.loadingController.getTop();
+  if (loading) {
+    await loading.dismiss();
+  }
+}
 
 }
